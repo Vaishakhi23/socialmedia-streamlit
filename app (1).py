@@ -1,9 +1,8 @@
-
 import streamlit as st
 import sqlite3
 import os
 
-# Correct DB path
+# Database path for Streamlit Cloud
 DB_PATH = os.path.join(os.path.dirname(__file__), 'socialmedia.db')
 conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()
@@ -31,13 +30,17 @@ CREATE TABLE IF NOT EXISTS likes (
 """)
 conn.commit()
 
+# Page setup
 st.set_page_config(page_title="Social App with Likes", layout="centered")
 st.title("📱 Social Media App + ❤️ Likes")
 
-tab1, tab2 = st.tabs(["📄 View Posts", "➕ Add Post"])
-
+# Load users
 users = cur.execute("SELECT * FROM users").fetchall()
 
+# Layout
+tab1, tab2 = st.tabs(["📄 View Posts", "➕ Add Post"])
+
+# ==== View Posts ====
 with tab1:
     st.subheader("📝 Posts Feed")
     posts = cur.execute("""
@@ -64,22 +67,26 @@ with tab1:
                 conn.commit()
                 st.experimental_rerun()
 
+# ==== Add Post ====
 with tab2:
     st.subheader("➕ Create a New Post")
 
-    with st.form("post_form"):
-        if not users:
-            st.warning("No users found. Please add users to the DB.")
-        else:
+    if not users:
+        st.warning("⚠️ No users found. Please add users to the database manually.")
+    else:
+        with st.form("post_form"):
             username = st.selectbox("Select a user", [u[1] for u in users])
             content = st.text_area("What's on your mind?")
             submitted = st.form_submit_button("Post")
+
             if submitted and content.strip():
                 user_id = [u[0] for u in users if u[1] == username][0]
                 cur.execute("INSERT INTO posts (user_id, content) VALUES (?, ?)", (user_id, content.strip()))
                 conn.commit()
                 st.success("✅ Post added!")
+                st.experimental_rerun()
             elif submitted:
                 st.error("Post cannot be empty!")
 
+# Close DB
 conn.close()
